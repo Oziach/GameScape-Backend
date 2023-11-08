@@ -6,6 +6,7 @@ import cors from 'cors';
 import bcrypt from 'bcrypt'
 import jwt from 'jsonwebtoken';
 import User from "./models/User.js";
+import Comment from "./models/Comment.js";
 
 const secret = 'secret123';
 const app = express();
@@ -21,7 +22,6 @@ app.use(cors({
     origin: 'http://localhost:3000',
     credentials: true,
 }))
-
 
 app.get('/', (req,res)=>{
     User.find()
@@ -93,6 +93,44 @@ app.post('/login', (req, res) => {
 
 app.post('/logout', (req,res)=>{
     res.cookie('token','').send();
+});
+
+app.get('/comments', (req,res)=>{
+  Comment.find().sort({postedAt: -1})
+  .then((comments)=>{
+    res.json(comments);
+  })
+});
+
+app.get('/comments/:id', (req,res)=>{
+
+  Comment.findById(req.params.id)
+  .then((comment)=>{
+    res.json(comment);
+  })
+});
+
+app.post('/comments', (req,res)=>{
+  const token = req.cookies.token;
+  if(!token){
+    res.sendStatus(401);
+    return;
+  }
+  getUserFromToken(token)
+  .then(userInfo =>{
+    const {title, body} = req.body;
+  const comment = new Comment({title:title, body:body, author:userInfo.username, postedAt:new Date()});
+  comment.save()
+  .then((savedComment)=>{
+    res.json(savedComment);
+  })
+  .catch(console.log);
+  })
+  .catch(() => {
+    res.sendStatus(401);
+  })
+
+  
 })
 
 app.listen(4000, ()=>{console.log("Started server at 4000")});
