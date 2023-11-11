@@ -57,16 +57,20 @@ app.post('/register', (req, res) => {
 })
 
 app.get('/user', (req, res) => {
+
     const token = req.cookies.token;
   
-    getUserFromToken(token)
+    if(token){
+      getUserFromToken(token)
       .then(user => {
         res.json({username:user.username});
       })
       .catch(err => {
         console.log(err);
-        res.sendStatus(500);
+        res.sendStatus(200);
       });
+    }
+
   
   });
 
@@ -93,11 +97,15 @@ app.post('/logout', (req,res)=>{
 });
 
 app.get('/comments', (req,res)=>{
-  const search = req.query.search;
+  const sort = req.query.sort === 'new'
+  ? {postedAt: -1}
+  : {likes: -1, dislikes:1}
+  const search = req.query.search
+  console.log(sort);
   const filters = search 
   ? {rootId:null, title:{$regex: '.*'+search+'.*', $options: 'i'}}
   : {rootId: null}
-  Comment.find(filters).sort({postedAt: -1})
+  Comment.find(filters).sort(sort)
   .then((comments)=>{
     res.json(comments);
   })
@@ -139,6 +147,7 @@ app.post('/comments', (req,res)=>{
        parentId,
        rootId,
        likes: 0,
+       dislikes:0,
     });
     comment.save()
     .then((savedComment)=>{

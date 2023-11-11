@@ -6,6 +6,11 @@ import Comment from "./models/Comment.js";
 const router = express.Router();
 
 router.get('/likedislike/:commentId/:which', (req,res)=>{
+
+    if(!req.cookies.token){
+        res.sendStatus(401);
+    }
+
     getUserFromToken(req.cookies.token)
     .then((userInfo)=>{
 
@@ -17,6 +22,10 @@ router.get('/likedislike/:commentId/:which', (req,res)=>{
                 console.log(existingWhich);
                 if(existingWhich === 'like') {
                     Comment.findOneAndUpdate({_id:req.params.commentId}, {$inc:{likes : -1}}, {new:true}).
+                    then((updated) => console.log(updated));
+                }
+                else if(existingWhich === 'dislike'){
+                    Comment.findOneAndUpdate({_id:req.params.commentId}, {$inc:{dislikes : -1}}, {new:true}).
                     then((updated) => console.log(updated));
                 }
 
@@ -43,7 +52,10 @@ router.get('/likedislike/:commentId/:which', (req,res)=>{
                                 Comment.findOneAndUpdate({_id:req.params.commentId}, {$inc:{likes : 1}}, {new:true}).
                                 then((updated) => console.log(updated));
                             }
-                            
+                            else{
+                                Comment.findOneAndUpdate({_id:req.params.commentId}, {$inc:{dislikes : 1}}, {new:true}).
+                                then((updated) => console.log(updated));
+                            }
                             let likes = 0, dislikes = 0;
                             commentLikeDislikes.forEach(likeDislike=>likeDislike.which == 'like' ? likes++ : dislikes++);
                             res.json({likes,dislikes})  ;
@@ -59,36 +71,37 @@ router.get('/likedislike/:commentId/:which', (req,res)=>{
 
 router.post('/likesdislikes', (req,res)=>{
     const {commentsIds} = req.body;
-
-    getUserFromToken(req.cookies.token)
-    .then((userInfo)=>{
-
-        LikeDislike.find({commentId: {$in:commentsIds}})
-        .then((likesDislikes)=>{
-            let commentsTotals = {};
-
-            likesDislikes.forEach(likeDislike =>{
-                if(typeof commentsTotals[likeDislike.commentId] === 'undefined') {
-                    commentsTotals[likeDislike.commentId] = {likes:0,dislikes:0}
-                }
-
-                likeDislike.which == 'like' ?
-                commentsTotals[likeDislike.commentId].likes ++ :
-                commentsTotals[likeDislike.commentId].dislikes ++;
-            })
-
-            let userLikesDislikes = {};
-            likesDislikes.forEach(likeDislike => {
-                if (likeDislike.author === userInfo.username) {
-                    userLikesDislikes[likeDislike.commentId] = likeDislike.which; 
-                }
-            })
-            
-
-            res.json({commentsTotals, userLikesDislikes});
+    
+    LikeDislike.find({commentId: {$in:commentsIds}})
+    .then((likesDislikes)=>{
+        let commentsTotals = {};
+        likesDislikes.forEach(likeDislike =>{
+            if(typeof commentsTotals[likeDislike.commentId] === 'undefined') {
+                commentsTotals[likeDislike.commentId] = {likes:0,dislikes:0}
+            }
+            likeDislike.which == 'like' ?
+            commentsTotals[likeDislike.commentId].likes ++ :
+            commentsTotals[likeDislike.commentId].dislikes ++;
         })
 
+        let userLikesDislikes = {};
+
+        if(req.cookies.token){
+            getUserFromToken(req.cookies.token)
+            .then(()=>{
+    
+                likesDislikes.forEach(likeDislike => {
+                    if (likeDislike.author === userInfo.username) {
+                        userLikesDislikes[likeDislike.commentId] = likeDislike.which; 
+                    }
+                })
+            })
+        }
+        
+        res.json({commentsTotals, userLikesDislikes});
     })
-})
+
+    })
+
 
 export default router;
