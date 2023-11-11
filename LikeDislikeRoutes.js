@@ -58,7 +58,7 @@ router.get('/likedislike/:commentId/:which', (req,res)=>{
                             }
                             let likes = 0, dislikes = 0;
                             commentLikeDislikes.forEach(likeDislike=>likeDislike.which == 'like' ? likes++ : dislikes++);
-                            res.json({likes,dislikes})  ;
+                            res.json({likes,dislikes}).status(401).send();
                         })
                     })
                 }
@@ -71,10 +71,13 @@ router.get('/likedislike/:commentId/:which', (req,res)=>{
 
 router.post('/likesdislikes', (req,res)=>{
     const {commentsIds} = req.body;
-    
+
     LikeDislike.find({commentId: {$in:commentsIds}})
     .then((likesDislikes)=>{
+
         let commentsTotals = {};
+        let userLikesDislikes = {};
+
         likesDislikes.forEach(likeDislike =>{
             if(typeof commentsTotals[likeDislike.commentId] === 'undefined') {
                 commentsTotals[likeDislike.commentId] = {likes:0,dislikes:0}
@@ -82,26 +85,30 @@ router.post('/likesdislikes', (req,res)=>{
             likeDislike.which == 'like' ?
             commentsTotals[likeDislike.commentId].likes ++ :
             commentsTotals[likeDislike.commentId].dislikes ++;
+
         })
 
-        let userLikesDislikes = {};
-
-        if(req.cookies.token){
+        
+        
+        if(req.cookies.token){         
             getUserFromToken(req.cookies.token)
-            .then(()=>{
-    
+            .then((userInfo)=>{
                 likesDislikes.forEach(likeDislike => {
                     if (likeDislike.author === userInfo.username) {
-                        userLikesDislikes[likeDislike.commentId] = likeDislike.which; 
+                        userLikesDislikes[likeDislike.commentId] = likeDislike.which;                         
                     }
                 })
-            })
+                res.json({commentsTotals, userLikesDislikes}).send();
+            })         
         }
+        else{
+             res.json({commentsTotals, userLikesDislikes}).send();
+        }
+       
         
-        res.json({commentsTotals, userLikesDislikes});
     })
 
-    })
+})
 
 
 export default router;

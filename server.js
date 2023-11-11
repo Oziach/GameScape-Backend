@@ -99,7 +99,7 @@ app.post('/logout', (req,res)=>{
 app.get('/comments', (req,res)=>{
   const sort = req.query.sort === 'new'
   ? {postedAt: -1}
-  : {likes: -1, dislikes:1}
+  : {likes: -1, dislikes:1};
   const search = req.query.search
   console.log(sort);
   const filters = search 
@@ -113,8 +113,8 @@ app.get('/comments', (req,res)=>{
 
 app.get('/comments/:id', (req,res)=>{
 
-  Comment.findById(req.params.id)
-  .then((comment)=>{
+  Comment.findById(req.params.id).
+  then((comment)=>{
     res.json(comment);
   })
 });
@@ -122,7 +122,12 @@ app.get('/comments/:id', (req,res)=>{
 
 
 app.get('/comments/root/:rootId', (req, res)=>{
-  Comment.find({rootId:req.params.rootId})
+
+  const sort = req.query.sort === 'new'
+  ? {postedAt: -1}
+  : {likes: -1, dislikes:1};
+
+  Comment.find({rootId:req.params.rootId}).sort(sort)
   .then((comments)=>{
     res.json(comments);
   })
