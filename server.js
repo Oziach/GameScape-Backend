@@ -7,6 +7,8 @@ import bcrypt from 'bcrypt'
 import jwt from 'jsonwebtoken';
 import User from "./models/User.js";
 import Comment from "./models/Comment.js";
+import LikeDislikeRouter from './LikeDislikeRoutes.js';
+import { getUserFromToken } from "./QOLFunctions.js";
 
 const secret = 'secret123';
 const app = express();
@@ -54,11 +56,6 @@ app.post('/register', (req, res) => {
     }))
 })
 
-function getUserFromToken(token) {
-    const userInfo = jwt.verify(token, secret);
-    return User.findById(userInfo.id);
-  }
-
 app.get('/user', (req, res) => {
     const token = req.cookies.token;
   
@@ -96,7 +93,11 @@ app.post('/logout', (req,res)=>{
 });
 
 app.get('/comments', (req,res)=>{
-  Comment.find().sort({postedAt: -1})
+  const search = req.query.search;
+  const filters = search 
+  ? {rootId:null, title:{$regex: '.*'+search+'.*', $options: 'i'}}
+  : {rootId: null}
+  Comment.find(filters).sort({postedAt: -1})
   .then((comments)=>{
     res.json(comments);
   })
@@ -110,27 +111,45 @@ app.get('/comments/:id', (req,res)=>{
   })
 });
 
+
+
+app.get('/comments/root/:rootId', (req, res)=>{
+  Comment.find({rootId:req.params.rootId})
+  .then((comments)=>{
+    res.json(comments);
+  })
+  .catch()
+})
+
 app.post('/comments', (req,res)=>{
   const token = req.cookies.token;
   if(!token){
     res.sendStatus(401);
     return;
   }
+
   getUserFromToken(token)
   .then(userInfo =>{
-    const {title, body} = req.body;
-  const comment = new Comment({title:title, body:body, author:userInfo.username, postedAt:new Date()});
-  comment.save()
-  .then((savedComment)=>{
-    res.json(savedComment);
-  })
-  .catch(console.log);
-  })
+    const {title, body, parentId, rootId} = req.body;
+    const comment = new Comment({
+      title:title,
+       body:body, 
+       author:userInfo.username, 
+       postedAt:new Date(),
+       parentId,
+       rootId,
+       likes: 0,
+    });
+    comment.save()
+    .then((savedComment)=>{
+      res.json(savedComment);
+    })
+    .catch(console.log);
+    })
   .catch(() => {
     res.sendStatus(401);
   })
-
-  
 })
+app.use('/', LikeDislikeRouter)
 
 app.listen(4000, ()=>{console.log("Started server at 4000")});
