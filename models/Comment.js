@@ -9,6 +9,7 @@ const Comment = mongoose.model('Comment', new mongoose.Schema({
     rootId: {type:mongoose.ObjectId, required:false},
     likes: {type:Number, required:true},
     dislikes: {type:Number, required:true},
+    community: {type:String, required:true},
 }));
 
 export default Comment;

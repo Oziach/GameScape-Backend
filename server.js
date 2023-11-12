@@ -8,6 +8,7 @@ import jwt from 'jsonwebtoken';
 import User from "./models/User.js";
 import Comment from "./models/Comment.js";
 import LikeDislikeRouter from './LikeDislikeRoutes.js';
+import CommunityRouter from './CommunityRoutes.js'
 import { getUserFromToken } from "./QOLFunctions.js";
 
 const secret = 'secret123';
@@ -24,6 +25,9 @@ app.use(cors({
     origin: 'http://localhost:3000',
     credentials: true,
 }))
+
+app.use('/', LikeDislikeRouter)
+app.use(CommunityRouter);
 
 app.get('/', (req,res)=>{
     User.find()
@@ -63,7 +67,7 @@ app.get('/user', (req, res) => {
     if(token){
       getUserFromToken(token)
       .then(user => {
-        res.json({username:user.username});
+        res.json({username:user.username, moderator:user.moderator});
       })
       .catch(err => {
         console.log(err);
@@ -81,7 +85,7 @@ app.post('/login', (req, res) => {
       const passOk = bcrypt.compareSync(password, user.password);
       if (passOk) {
         jwt.sign({id:user._id}, secret, (err, token) => {
-          res.cookie('token', token).send();
+          res.cookie('token', token).json({username: user.username, moderator:user.moderator}).send();
         });
       } else {
         res.status(422).json('Invalid username or password');
@@ -100,11 +104,12 @@ app.get('/comments', (req,res)=>{
   const sort = req.query.sort === 'new'
   ? {postedAt: -1}
   : {likes: -1, dislikes:1};
+  const community = req.query.community;
   const search = req.query.search
-  console.log(sort);
   const filters = search 
   ? {rootId:null, title:{$regex: '.*'+search+'.*', $options: 'i'}}
   : {rootId: null}
+  filters.community=community;
   Comment.find(filters).sort(sort)
   .then((comments)=>{
     res.json(comments);
@@ -134,6 +139,31 @@ app.get('/comments/root/:rootId', (req, res)=>{
   .catch()
 })
 
+app.post('/comments/edit', (req,res)=>{
+  const token = req.cookies.token;
+  if(!token){
+    res.sendStatus(401);
+    return;
+  }
+
+
+  getUserFromToken(token)
+  .then(userInfo=>{
+    const {commentId,title, body,} = req.body;
+    console.log(body);
+    Comment.findOneAndUpdate({_id:commentId, title:title, author:userInfo.username}, {body:body})
+    .then((updated)=>{
+      if(updated){
+          res.sendStatus(201)
+      }
+      else{
+        res.sendStatus(404);
+      }
+    })
+  })
+})
+
+
 app.post('/comments', (req,res)=>{
   const token = req.cookies.token;
   if(!token){
@@ -143,7 +173,7 @@ app.post('/comments', (req,res)=>{
 
   getUserFromToken(token)
   .then(userInfo =>{
-    const {title, body, parentId, rootId} = req.body;
+    const {title, body, parentId, rootId,communityName} = req.body;
     const comment = new Comment({
       title:title,
        body:body, 
@@ -153,10 +183,11 @@ app.post('/comments', (req,res)=>{
        rootId,
        likes: 0,
        dislikes:0,
+       community:communityName,
     });
     comment.save()
     .then((savedComment)=>{
-      res.json(savedComment);
+      res.status(201).json(savedComment);
     })
     .catch(console.log);
     })
@@ -164,6 +195,6 @@ app.post('/comments', (req,res)=>{
     res.sendStatus(401);
   })
 })
-app.use('/', LikeDislikeRouter)
+
 
 app.listen(4000, ()=>{console.log("Started server at 4000")});
