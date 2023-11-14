@@ -141,6 +141,7 @@ app.get('/comments/root/:rootId', (req, res)=>{
 
 app.post('/comments/edit', (req,res)=>{
   const token = req.cookies.token;
+
   if(!token){
     res.sendStatus(401);
     return;
@@ -150,8 +151,7 @@ app.post('/comments/edit', (req,res)=>{
   getUserFromToken(token)
   .then(userInfo=>{
     const {commentId,title, body,} = req.body;
-    console.log(body);
-    Comment.findOneAndUpdate({_id:commentId, title:title, author:userInfo.username}, {body:body})
+    Comment.findOneAndUpdate({_id:commentId, author:userInfo.username}, {title:title, body:body})
     .then((updated)=>{
       if(updated){
           res.sendStatus(201)
@@ -196,5 +196,29 @@ app.post('/comments', (req,res)=>{
   })
 })
 
+app.post('/comment/delete', (req, res)=>{
+
+  const token = req.cookies.token;
+  if (!token){
+    res.sendStatus(401);
+    return;
+  }
+
+  console.log("hey");
+  const {commentId} = req.body;
+
+  getUserFromToken(token)
+  .then((userInfo)=>{
+    Comment.findById(commentId)
+    .then((comment)=>{
+      if(userInfo.username === comment.author){
+        Comment.findByIdAndDelete(commentId)
+        .then(()=>{
+          res.sendStatus(200);
+        })
+      }
+    })
+  })
+})
 
 app.listen(4000, ()=>{console.log("Started server at 4000")});
