@@ -204,7 +204,6 @@ app.post('/comment/delete', (req, res)=>{
     return;
   }
 
-  console.log("hey");
   const {commentId} = req.body;
 
   getUserFromToken(token)

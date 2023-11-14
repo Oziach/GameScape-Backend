@@ -29,11 +29,24 @@ router.post('/communities', (req,res)=>{
     })
 })
 
+router.get('/communities', (req,res)=>{
+    Community.find()
+    .then((communities)=>{
+        res.json(communities);
+    })
+})
+
 router.get('/communities/:name', (req,res)=>{
     const {name} = req.params;
     Community.findOne({name})
     .then((community)=>{
-        res.json(community);
+        if(community){
+            res.json(community);
+        }
+        else{
+            res.sendStatus(404);
+        }
+
     })
 })
 
