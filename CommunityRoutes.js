@@ -30,7 +30,12 @@ router.post('/communities', (req,res)=>{
 })
 
 router.get('/communities', (req,res)=>{
-    Community.find()
+    const search = req.query.search ;
+    const filters = search 
+    ? {$or:[{name:{$regex: '.*'+search+'.*', $options: 'i'}},
+            {title:{$regex: '.*'+search+'.*', $options: 'i'}}]}
+    : {};
+    Community.find(filters)
     .then((communities)=>{
         res.json(communities);
     })
