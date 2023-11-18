@@ -22,7 +22,7 @@ app.use(bodyParser.urlencoded({extended:true}));
 app.use(bodyParser.json());
 app.use(cookieParser());
 app.use(cors({
-    origin: 'http://localhost:3000',
+    origin: 'https://game-scape-community-website-mern-project.vercel.app/',
     credentials: true,
 }))
 
