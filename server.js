@@ -53,7 +53,7 @@ app.post('/register', (req, res) => {
                 res.sendStatus(500);
             }
             else{
-                res.status(201).cookie('token', token).send();
+                res.status(201).json({username:user.username, moderator:user.moderator, token: token}).send();
             }
             
         })
@@ -64,14 +64,14 @@ app.post('/register', (req, res) => {
     }))
 })
 
-app.get('/user', (req, res) => {
+app.post('/user', (req, res) => {
 
-    const token = req.cookies.token;
   
-    if(token){
-      getUserFromToken(token)
+    if(req.body.token){
+
+      getUserFromToken(req.body.token)
       .then(user => {
-        res.json({username:user.username, moderator:user.moderator});
+        res.json({username:user.username, moderator:user.moderator, token: req.body.token});
       })
       .catch(err => {
         console.log(err);
@@ -89,7 +89,7 @@ app.post('/login', (req, res) => {
       const passOk = bcrypt.compareSync(password, user.password);
       if (passOk) {
         jwt.sign({id:user._id}, secret, (err, token) => {
-          res.cookie('token', token).json({username: user.username, moderator:user.moderator}).send();
+          res.json({username: user.username, moderator:user.moderator, token:token}).send();
         });
       } else {
         res.status(422).json('Invalid username or password');
@@ -100,9 +100,6 @@ app.post('/login', (req, res) => {
   });
 });
 
-app.post('/logout', (req,res)=>{
-    res.cookie('token','').send();
-});
 
 app.get('/comments', (req,res)=>{
   const sort = req.query.sort === 'new'
@@ -144,7 +141,7 @@ app.get('/comments/root/:rootId', (req, res)=>{
 })
 
 app.post('/comments/edit', (req,res)=>{
-  const token = req.cookies.token;
+  const token = req.body.token;
 
   if(!token){
     res.sendStatus(401);
@@ -169,7 +166,8 @@ app.post('/comments/edit', (req,res)=>{
 
 
 app.post('/comments', (req,res)=>{
-  const token = req.cookies.token;
+  const token = req.body.token;
+
   if(!token){
     res.sendStatus(401);
     return;
@@ -202,7 +200,8 @@ app.post('/comments', (req,res)=>{
 
 app.post('/comment/delete', (req, res)=>{
 
-  const token = req.cookies.token;
+  const token = req.body.token;
+
   if (!token){
     res.sendStatus(401);
     return;

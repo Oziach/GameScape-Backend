@@ -11,7 +11,8 @@ router.post('/communities', (req,res)=>{
             res.status(409).json('community already exists');
         }
         else{
-            getUserFromToken(req.cookies.token)
+            if(!req.body.token) {res.sendStatus(401);return;}
+            getUserFromToken(req.body.token)
             .then((userInfo)=>{
                 if(userInfo && userInfo.moderator){
                     const community = new Community({name,title,iconImage,cardImage});

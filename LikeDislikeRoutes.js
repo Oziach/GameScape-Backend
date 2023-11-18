@@ -5,13 +5,13 @@ import Comment from "./models/Comment.js";
 
 const router = express.Router();
 
-router.get('/likedislike/:commentId/:which', (req,res)=>{
+router.post('/likedislike/:commentId/:which', (req,res)=>{
 
-    if(!req.cookies.token){
+    if(!req.body.token){
         res.sendStatus(401);
     }
 
-    getUserFromToken(req.cookies.token)
+    getUserFromToken(req.body.token)
     .then((userInfo)=>{
 
         LikeDislike.findOne({commentId:req.params.commentId,author:userInfo.username})
@@ -89,9 +89,9 @@ router.post('/likesdislikes', (req,res)=>{
         })
 
         
-        
-        if(req.cookies.token){         
-            getUserFromToken(req.cookies.token)
+        console.log(req.body.token);
+        if(req.body.token){         
+            getUserFromToken(req.body.token)
             .then((userInfo)=>{
                 likesDislikes.forEach(likeDislike => {
                     if (likeDislike.author === userInfo.username) {
