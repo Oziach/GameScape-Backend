@@ -21,14 +21,7 @@ db.on("error", ()=>console.log("Error occured"));
 app.use(bodyParser.urlencoded({extended:true}));
 app.use(bodyParser.json());
 app.use(cookieParser());
-app.use(cors({
-  origin: (origin, callback) => {
-    if (true) {
-        callback(null, true)
-    }
-  },
-credentials: true,
-}))
+app.use(cors());
 
 app.use('/', LikeDislikeRouter)
 app.use(CommunityRouter);
